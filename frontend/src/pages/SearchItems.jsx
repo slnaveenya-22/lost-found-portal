@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function SearchItems() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     query: "",
     category: "",
@@ -124,7 +126,11 @@ function SearchItems() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {results.map((item, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-md p-4 flex gap-4">
+            <div
+              key={index}
+              onClick={() => navigate(`/item/${item.type.toLowerCase()}/${item.report_id}`)}
+              className="bg-white rounded-lg shadow-md p-4 flex gap-4 cursor-pointer hover:shadow-lg transition"
+            >
               {item.image_url ? (
                 <img
                   src={`http://localhost:5000${item.image_url}`}
