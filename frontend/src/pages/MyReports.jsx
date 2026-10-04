@@ -156,33 +156,32 @@ export default function MyReports() {
 
   // ── Remove (Story 11) ───────────────────────────────────────
   const confirmRemove = async () => {
-    if (!removeTarget) return;
-    const { type, report_id } = removeTarget;
+  if (!removeTarget) return;
+  const { type, report_id } = removeTarget;
 
-    // Optimistic
-    const snapshot = reports;
-    setReports((prev) =>
-      prev.map((r) =>
-        r.report_id === report_id ? { ...r, status: "Removed" } : r
-      )
+  const snapshot = reports;
+  setReports((prev) =>
+    prev.map((r) =>
+      r.report_id === report_id ? { ...r, status: "Removed" } : r
+    )
+  );
+  setRemoveTarget(null);
+
+  try {
+    await axios.patch(
+      `http://localhost:5000/api/items/${type}/${report_id}`,
+      { status: "Removed" },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
     );
-    setRemoveTarget(null);
-
-    try {
-      await axios.patch(
-        `http://localhost:5000/api/items/${type}/${report_id}`,
-        { status: "Removed" },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-    } catch (err) {
-      setReports(snapshot);
-      alert(err.response?.data?.error || "Failed to remove. Please try again.");
-    }
-  };
+  } catch (err) {
+    setReports(snapshot);
+    alert(err.response?.data?.error || "Failed to remove. Please try again.");
+  }
+};
 
   if (!user) return null;
 

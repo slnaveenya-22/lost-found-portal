@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [matches, setMatches] = useState([]);
 
   const user = useMemo(() => {
     try {
@@ -21,6 +22,29 @@ export default function Dashboard() {
       return null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const controller = new AbortController();
+
+    axios
+      .get("http://localhost:5000/api/matches/my", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        signal: controller.signal,
+      })
+      .then((res) => {
+        if (!cancelled) setMatches(res.data.items || []);
+      })
+      .catch(() => {
+        /* silent — empty state */
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [user]);
 
   // ── Redirect guests ─────────────────────────────────────────
   useEffect(() => {
@@ -72,8 +96,8 @@ export default function Dashboard() {
         if (activityRes.status === "fulfilled") {
           setActivity(
             activityRes.value.data.items ||
-              activityRes.value.data.activity ||
-              []
+            activityRes.value.data.activity ||
+            []
           );
         } else {
           setActivity([]);
@@ -210,6 +234,46 @@ export default function Dashboard() {
                 ))}
             </div>
           </div>
+
+          {/* Recent matches */}
+          {matches.length > 0 && (
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Suggested matches
+                </h2>
+                <span className="text-xs text-slate-400">
+                  {matches.length} {matches.length === 1 ? "match" : "matches"}
+                </span>
+              </div>
+              <ul className="divide-y divide-slate-100">
+                {matches.slice(0, 4).map((m) => (
+                  <li key={m.match_id}>
+                    <button
+                      onClick={() =>
+                        navigate(`/items/found/${m.found_report_id}`)
+                      }
+                      className="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 text-left"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                        🎯
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {m.lost_item_name} <span className="text-slate-400">↔</span>{" "}
+                          {m.found_item_name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Score {m.match_score}% · {timeAgo(m.matched_at)}
+                        </p>
+                      </div>
+                      <span className="text-slate-300">→</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* ── Quick actions + tips (1/3) ───────────────────── */}

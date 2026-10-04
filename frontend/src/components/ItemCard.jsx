@@ -23,6 +23,11 @@ export default function ItemCard({ item, onClick }) {
         )}
         <div className="absolute top-2 left-2"><TypeBadge type={item.type} /></div>
         <div className="absolute top-2 right-2"><StatusPill status={item.status} /></div>
+        {item.match_score != null && (
+          <div className="absolute bottom-2 right-2 rounded-md bg-brand-primary/90 text-white text-xs font-semibold px-2 py-0.5 backdrop-blur">
+            {item.match_score}% match
+          </div>
+        )}
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-slate-900 truncate">{item.item_name}</h3>

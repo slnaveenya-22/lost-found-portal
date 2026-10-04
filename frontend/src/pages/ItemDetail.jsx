@@ -18,6 +18,8 @@ export default function ItemDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   // ── Who is viewing? ─────────────────────────────────────────
   const user = useMemo(() => {
@@ -102,7 +104,30 @@ export default function ItemDetail() {
       setStatusUpdating(false);
     }
   };
-
+  // ── Owner: mark own item as removed ─────────────────────────
+  const handleRemove = async () => {
+    if (!item) return;
+    setRemoving(true);
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/items/${type}/${reportId}`,
+        { status: "Removed" },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setItem({ ...item, status: "Removed" });
+      setConfirmRemoveOpen(false);
+    } catch (err) {
+      alert(
+        err.response?.data?.error || "Failed to remove. Please try again."
+      );
+    } finally {
+      setRemoving(false);
+    }
+  };
   // ── Render branches ─────────────────────────────────────────
   if (loading) return <DetailSkeleton />;
 
@@ -288,6 +313,7 @@ export default function ItemDetail() {
               isAdmin={isAdmin}
               statusUpdating={statusUpdating}
               onStatusChange={handleStatusChange}
+              onRemoveClick={() => setConfirmRemoveOpen(true)}
               navigate={navigate}
             />
 
@@ -302,6 +328,15 @@ export default function ItemDetail() {
           </div>
         </aside>
       </div>
+
+      {confirmRemoveOpen && item && (
+        <ConfirmRemoveModal
+          item={item}
+          busy={removing}
+          onCancel={() => setConfirmRemoveOpen(false)}
+          onConfirm={handleRemove}
+        />
+      )}
     </div>
   );
 }
@@ -331,6 +366,7 @@ function ActionPanel({
   isAdmin,
   statusUpdating,
   onStatusChange,
+  onRemoveClick,        // NEW
   navigate,
 }) {
   // ── Guest ────────────────────────────────────────────────
@@ -374,7 +410,11 @@ function ActionPanel({
         <Button variant="primary" className="w-full mt-4">
           ✏️ Edit listing
         </Button>
-        <Button variant="secondary" className="w-full mt-2">
+        <Button
+          variant="secondary"
+          className="w-full mt-2 !text-red-600 hover:!bg-red-50"
+          onClick={onRemoveClick}
+        >
           🗑 Mark as removed
         </Button>
         {type === "found" && (
@@ -480,4 +520,36 @@ function formatDate(value) {
   } catch {
     return value;
   }
+}
+
+function ConfirmRemoveModal({ item, busy, onCancel, onConfirm }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={busy ? undefined : onCancel}
+    >
+      <div
+        className="w-full max-w-md mx-4 rounded-xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-slate-900">
+          Remove this report?
+        </h3>
+        <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+          "{item.item_name}" ({item.report_id}) will be marked as removed and
+          hidden from browse. You won't be able to undo this yourself — an
+          admin can restore it if needed.
+        </p>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="secondary" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={onConfirm} disabled={busy}>
+            {busy ? "Removing…" : "Yes, remove"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

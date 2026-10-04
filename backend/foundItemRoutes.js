@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const db = require('./db');
-
+const { findMatchesFor } = require('./matchingEngine');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -32,12 +32,19 @@ router.post('/', upload.single('image'), async (req, res) => {
     const reportId = generateReportId();
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-    await db.query(
+    const [result] = await db.query(
       `INSERT INTO found_items 
        (report_id, user_id, category, item_name, color, brand, location, date_time, description, image_url, private_verification_detail) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [reportId, user_id, category, item_name, color, brand, location, date_time, description, imageUrl, private_verification_detail]
     );
+
+    const newId = result.insertId;
+    setImmediate(() => {
+      findMatchesFor(newId, 'found').catch((err) =>
+        console.error('background match scan failed:', err.message)
+      );
+    });
 
     res.status(201).json({ message: 'Found item reported successfully', reportId });
   } catch (err) {
