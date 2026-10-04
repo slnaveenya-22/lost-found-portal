@@ -19,7 +19,6 @@ export default function ItemDetail() {
   const [error, setError] = useState("");
   const [statusUpdating, setStatusUpdating] = useState(false);
 
-  // ── Who is viewing? ─────────────────────────────────────────
   const user = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -32,7 +31,6 @@ export default function ItemDetail() {
   const isOwner = user && item && Number(item.user_id) === Number(user.id);
   const isAdmin = user?.role === "admin";
 
-  // ── Fetch item ──────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
@@ -49,7 +47,6 @@ export default function ItemDetail() {
         const data = res.data.item || res.data;
         setItem(data);
 
-        // Similar items — Story 7 placeholder. Silently ignore failures.
         try {
           const simRes = await axios.get(
             "http://localhost:5000/api/matches/suggestions",
@@ -85,7 +82,6 @@ export default function ItemDetail() {
     };
   }, [type, reportId]);
 
-  // ── Admin: change status ────────────────────────────────────
   const handleStatusChange = async (newStatus) => {
     if (!newStatus || newStatus === item.status) return;
     setStatusUpdating(true);
@@ -103,7 +99,6 @@ export default function ItemDetail() {
     }
   };
 
-  // ── Render branches ─────────────────────────────────────────
   if (loading) return <DetailSkeleton />;
 
   if (error === "not-found") {
@@ -150,7 +145,6 @@ export default function ItemDetail() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* ── Breadcrumb ──────────────────────────────────────── */}
       <nav className="mb-4 flex items-center gap-2 text-sm text-slate-500">
         <Link to={`/browse/${type}`} className="hover:text-brand-accent">
           {type === "lost" ? "Lost Items" : "Found Items"}
@@ -162,9 +156,7 @@ export default function ItemDetail() {
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Left: image + details ─────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Image card */}
           <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
             <div className="relative aspect-video bg-slate-100">
               {imageUrl ? (
@@ -187,7 +179,6 @@ export default function ItemDetail() {
             </div>
           </div>
 
-          {/* Meta grid */}
           <div className="rounded-xl border border-slate-200 bg-white p-6">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               {item.item_name}
@@ -218,7 +209,6 @@ export default function ItemDetail() {
             </dl>
           </div>
 
-          {/* Description */}
           {item.description && (
             <div className="rounded-xl border border-slate-200 bg-white p-6">
               <h2 className="text-sm font-semibold text-slate-900 mb-2">
@@ -230,7 +220,6 @@ export default function ItemDetail() {
             </div>
           )}
 
-          {/* Owner-only private verification box */}
           {isOwner && type === "found" && item.private_verification_detail && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
               <div className="flex items-start gap-3">
@@ -251,7 +240,6 @@ export default function ItemDetail() {
             </div>
           )}
 
-          {/* Similar items — Story 7 placeholder */}
           {similar.length > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-6">
               <div className="flex items-center justify-between mb-4">
@@ -277,7 +265,6 @@ export default function ItemDetail() {
           )}
         </div>
 
-        {/* ── Right: sticky action panel ─────────────────────── */}
         <aside className="lg:col-span-1 mt-6 lg:mt-0">
           <div className="lg:sticky lg:top-4 space-y-4">
             <ActionPanel
@@ -291,7 +278,6 @@ export default function ItemDetail() {
               navigate={navigate}
             />
 
-            {/* Safety note */}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs text-slate-500 leading-relaxed">
                 <strong className="text-slate-700">Safety tip:</strong> Meet
@@ -305,8 +291,6 @@ export default function ItemDetail() {
     </div>
   );
 }
-
-/* ── Sub-components ─────────────────────────────────────── */
 
 function MetaRow({ icon, label, value }) {
   if (!value) return null;
@@ -333,7 +317,6 @@ function ActionPanel({
   onStatusChange,
   navigate,
 }) {
-  // ── Guest ────────────────────────────────────────────────
   if (isGuest) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6">
@@ -361,7 +344,6 @@ function ActionPanel({
     );
   }
 
-  // ── Owner ────────────────────────────────────────────────
   if (isOwner) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6">
@@ -386,7 +368,6 @@ function ActionPanel({
     );
   }
 
-  // ── Admin ────────────────────────────────────────────────
   if (isAdmin) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6">
@@ -414,7 +395,6 @@ function ActionPanel({
     );
   }
 
-  // ── Logged-in non-owner ──────────────────────────────────
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6">
       <h3 className="text-sm font-semibold text-slate-900">
@@ -467,8 +447,6 @@ function DetailSkeleton() {
     </div>
   );
 }
-
-/* ── Utilities ─────────────────────────────────────────── */
 
 function formatDate(value) {
   if (!value) return null;

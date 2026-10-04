@@ -30,18 +30,15 @@ export default function SearchItems({ type = "lost", title }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // ── Filter state, seeded from URL so links are shareable ─────
   const [keyword, setKeyword] = useState(searchParams.get("q") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "");
   const [dateRange, setDateRange] = useState(searchParams.get("days") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "recent");
 
-  // ── Data state ───────────────────────────────────────────────
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ── Guest detection ──────────────────────────────────────────
   const user = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -51,7 +48,6 @@ export default function SearchItems({ type = "lost", title }) {
   }, []);
   const isGuest = !user;
 
-  // ── Fetch when filters change ────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
@@ -83,7 +79,6 @@ export default function SearchItems({ type = "lost", title }) {
       }
     }
 
-    // Debounce keyword typing so we don't hammer the API
     const timer = setTimeout(fetchItems, 300);
     return () => {
       cancelled = true;
@@ -92,7 +87,6 @@ export default function SearchItems({ type = "lost", title }) {
     };
   }, [keyword, category, dateRange, sort, type]);
 
-  // ── Keep URL in sync (shareable filters) ─────────────────────
   useEffect(() => {
     const next = {};
     if (keyword.trim()) next.q = keyword.trim();
@@ -119,7 +113,6 @@ export default function SearchItems({ type = "lost", title }) {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* ── Page header ─────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -144,7 +137,6 @@ export default function SearchItems({ type = "lost", title }) {
         )}
       </div>
 
-      {/* ── Guest banner ────────────────────────────────────── */}
       {isGuest && (
         <div className="mb-6 rounded-xl border border-brand-accent-soft bg-brand-accent-soft/60 px-4 py-3
           flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -163,7 +155,6 @@ export default function SearchItems({ type = "lost", title }) {
       )}
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* ── Filter rail ────────────────────────────────────── */}
         <aside className="lg:w-64 shrink-0">
           <div className="lg:sticky lg:top-4 rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center justify-between mb-3">
@@ -227,9 +218,7 @@ export default function SearchItems({ type = "lost", title }) {
           </div>
         </aside>
 
-        {/* ── Results ─────────────────────────────────────────── */}
         <section className="flex-1 min-w-0">
-          {/* Result count */}
           {!loading && !error && items.length > 0 && (
             <div className="mb-4 space-y-2">
               <p className="text-sm text-slate-500">
@@ -326,8 +315,6 @@ export default function SearchItems({ type = "lost", title }) {
     </div>
   );
 }
-
-/* ── Small helpers ─────────────────────────────────────────── */
 
 function FilterChip({ label, onClear }) {
   return (

@@ -33,7 +33,6 @@ router.get('/', optionalAuth, async (req, res) => {
   const where = [];
   const params = [];
 
-  // Keyword search across several columns
   if (q && q.trim()) {
     const like = `%${q.trim()}%`;
     where.push(`(
@@ -59,7 +58,6 @@ router.get('/', optionalAuth, async (req, res) => {
     }
   }
 
-  // Default: don't show Removed items in public browse
   where.push("status != 'Removed'");
 
   const orderBy = {
