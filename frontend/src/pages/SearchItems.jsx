@@ -1,168 +1,353 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import ItemCard from "../components/ItemCard";
+import EmptyState from "../components/EmptyState";
+import Button from "../components/Button";
+import FormField, { inputClass } from "../components/FormField";
 
-function SearchItems() {
+// Fallback category list — swap with a GET /api/categories when you build it
+const CATEGORIES = [
+  "Electronics",
+  "Bag",
+  "ID Card",
+  "Books",
+  "Clothing",
+  "Keys",
+  "Wallet",
+  "Water Bottle",
+  "Other",
+];
+
+const DATE_RANGES = [
+  { label: "Any time", value: "" },
+  { label: "Last 24 hours", value: "1" },
+  { label: "Last 7 days", value: "7" },
+  { label: "Last 30 days", value: "30" },
+];
+
+export default function SearchItems({ type = "lost", title }) {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState({
-    query: "",
-    category: "",
-    type: "all",
-    dateFrom: "",
-    dateTo: "",
-  });
-  const [results, setResults] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [keyword, setKeyword] = useState(searchParams.get("q") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "");
+  const [dateRange, setDateRange] = useState(searchParams.get("days") || "");
+  const [sort, setSort] = useState(searchParams.get("sort") || "recent");
+
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searched, setSearched] = useState(false);
 
-  const handleChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    setError("");
-
+  const user = useMemo(() => {
     try {
-      const params = new URLSearchParams();
-      if (filters.query) params.append("query", filters.query);
-      if (filters.category) params.append("category", filters.category);
-      if (filters.type && filters.type !== "all") params.append("type", filters.type);
-      if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
-      if (filters.dateTo) params.append("dateTo", filters.dateTo);
-
-      const response = await axios.get(`http://localhost:5000/api/items/search?${params.toString()}`);
-      setResults(response.data.results);
-      setSearched(true);
-    } catch (err) {
-      setError("Something went wrong while searching.");
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
     }
+  }, []);
+  const isGuest = !user;
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    async function fetchItems() {
+      setLoading(true);
+      setError("");
+      try {
+        const params = { type };
+        if (keyword.trim()) params.q = keyword.trim();
+        if (category) params.category = category;
+        if (dateRange) params.days = dateRange;
+        if (sort) params.sort = sort;
+
+        const res = await axios.get("http://localhost:5000/api/items/search", {
+          params,
+          signal: controller.signal,
+        });
+
+        if (!cancelled) setItems(res.data.items || res.data || []);
+      } catch (err) {
+        if (axios.isCancel(err) || cancelled) return;
+        setError(
+          err.response?.data?.error ||
+            "Couldn't load items. Please try again."
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    const timer = setTimeout(fetchItems, 300);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [keyword, category, dateRange, sort, type]);
+
+  useEffect(() => {
+    const next = {};
+    if (keyword.trim()) next.q = keyword.trim();
+    if (category) next.category = category;
+    if (dateRange) next.days = dateRange;
+    if (sort && sort !== "recent") next.sort = sort;
+    setSearchParams(next, { replace: true });
+  }, [keyword, category, dateRange, sort, setSearchParams]);
+
+  const clearFilters = () => {
+    setKeyword("");
+    setCategory("");
+    setDateRange("");
+    setSort("recent");
   };
+
+  const activeFilterCount =
+    (keyword.trim() ? 1 : 0) +
+    (category ? 1 : 0) +
+    (dateRange ? 1 : 0);
+
+  const pageTitle =
+    title || (type === "lost" ? "Lost Items" : "Found Items");
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center">Search Lost & Found Items</h2>
+    <div className="max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {pageTitle}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {type === "lost"
+              ? "Browse items reported missing on campus."
+              : "Browse items found and waiting to be claimed."}
+          </p>
+        </div>
 
-        <form onSubmit={handleSearch} className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Keyword</label>
-              <input
-                type="text"
-                name="query"
-                value={filters.query}
-                onChange={handleChange}
-                placeholder="e.g. wallet, phone, black bag"
-                className="w-full border rounded px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <input
-                type="text"
-                name="category"
-                value={filters.category}
-                onChange={handleChange}
-                placeholder="e.g. Electronics"
-                className="w-full border rounded px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Type</label>
-              <select
-                name="type"
-                value={filters.type}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="all">All</option>
-                <option value="lost">Lost only</option>
-                <option value="found">Found only</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-sm font-medium mb-1">From</label>
-                <input
-                  type="date"
-                  name="dateFrom"
-                  value={filters.dateFrom}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">To</label>
-                <input
-                  type="date"
-                  name="dateTo"
-                  value={filters.dateTo}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        {!isGuest && (
+          <Button
+            variant="accent"
+            onClick={() =>
+              navigate(type === "lost" ? "/report-lost" : "/report-found")
+            }
           >
-            Search
-          </button>
-        </form>
-
-        {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>
+            ➕ Report {type === "lost" ? "Lost" : "Found"} Item
+          </Button>
         )}
+      </div>
 
-        {searched && results.length === 0 && !error && (
-          <div className="text-center text-gray-500">No items found matching your search.</div>
-        )}
+      {isGuest && (
+        <div className="mb-6 rounded-xl border border-brand-accent-soft bg-brand-accent-soft/60 px-4 py-3
+          flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-brand-primary">
+            👋 Browsing as a guest. Log in to report items or raise a claim.
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => navigate("/register")}>
+              Register
+            </Button>
+            <Button size="sm" variant="primary" onClick={() => navigate("/login")}>
+              Log In
+            </Button>
+          </div>
+        </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {results.map((item, index) => (
-            <div
-              key={index}
-              onClick={() => navigate(`/item/${item.type.toLowerCase()}/${item.report_id}`)}
-              className="bg-white rounded-lg shadow-md p-4 flex gap-4 cursor-pointer hover:shadow-lg transition"
-            >
-              {item.image_url ? (
-                <img
-                  src={`http://localhost:5000${item.image_url}`}
-                  alt={item.item_name}
-                  className="w-20 h-20 object-cover rounded"
-                />
-              ) : (
-                <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">
-                  No photo
+      <div className="flex flex-col lg:flex-row gap-6">
+        <aside className="lg:w-64 shrink-0">
+          <div className="lg:sticky lg:top-4 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-slate-900">Filters</h2>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-brand-accent hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            <FormField label="Keyword">
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Search item, brand, place…"
+                className={inputClass}
+              />
+            </FormField>
+
+            <FormField label="Category">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">All categories</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Date reported">
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                className={inputClass}
+              >
+                {DATE_RANGES.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Sort by">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className={inputClass}
+              >
+                <option value="recent">Most recent</option>
+                <option value="oldest">Oldest first</option>
+                <option value="name">Item name (A–Z)</option>
+              </select>
+            </FormField>
+          </div>
+        </aside>
+
+        <section className="flex-1 min-w-0">
+          {!loading && !error && items.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-sm text-slate-500">
+                {items.length} {items.length === 1 ? "item" : "items"} found
+              </p>
+              {activeFilterCount > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {keyword.trim() && (
+                    <FilterChip label={`"${keyword.trim()}"`} onClear={() => setKeyword("")} />
+                  )}
+                  {category && (
+                    <FilterChip label={category} onClear={() => setCategory("")} />
+                  )}
+                  {dateRange && (
+                    <FilterChip
+                      label={DATE_RANGES.find((r) => r.value === dateRange)?.label}
+                      onClear={() => setDateRange("")}
+                    />
+                  )}
                 </div>
               )}
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold">{item.item_name}</h3>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      item.type === "Lost" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
-                    }`}
-                  >
-                    {item.type}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600">{item.category} • {item.location}</p>
-                <p className="text-sm text-gray-500">{new Date(item.date_time).toLocaleDateString()}</p>
-                <p className="text-xs text-gray-400 mt-1">{item.report_id}</p>
-              </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          {loading && <SkeletonGrid />}
+
+          {!loading && error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+              <p className="text-sm text-red-700">{error}</p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-3"
+                onClick={clearFilters}
+              >
+                Reset filters
+              </Button>
+            </div>
+          )}
+
+          {!loading && !error && items.length === 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white">
+              <EmptyState
+                icon={type === "lost" ? "🔍" : "📦"}
+                title={
+                  activeFilterCount > 0
+                    ? "No items match your filters"
+                    : `No ${type} items yet`
+                }
+                message={
+                  activeFilterCount > 0
+                    ? "Try removing a filter or using a different keyword."
+                    : `Be the first to report a ${type} item.`
+                }
+                action={
+                  activeFilterCount > 0 ? (
+                    <Button variant="secondary" onClick={clearFilters}>
+                      Clear filters
+                    </Button>
+                  ) : !isGuest ? (
+                    <Button
+                      variant="accent"
+                      onClick={() =>
+                        navigate(type === "lost" ? "/report-lost" : "/report-found")
+                      }
+                    >
+                      ➕ Report {type === "lost" ? "Lost" : "Found"} Item
+                    </Button>
+                  ) : (
+                    <Button variant="primary" onClick={() => navigate("/login")}>
+                      Log in to report
+                    </Button>
+                  )
+                }
+              />
+            </div>
+          )}
+
+          {!loading && !error && items.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {items.map((item) => (
+                <ItemCard
+                  key={item.id || item.report_id}
+                  item={{ ...item, type }}
+                  onClick={() =>
+                    navigate(`/items/${type}/${item.report_id}`)
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
 }
 
-export default SearchItems;
+function FilterChip({ label, onClear }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white
+      px-2.5 py-1 text-xs text-slate-600">
+      {label}
+      <button
+        onClick={onClear}
+        className="text-slate-400 hover:text-slate-700"
+        aria-label={`Remove filter ${label}`}
+      >
+        ✕
+      </button>
+    </span>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-xl border border-slate-200 bg-white overflow-hidden animate-pulse"
+        >
+          <div className="aspect-video bg-slate-200" />
+          <div className="p-4 space-y-2">
+            <div className="h-4 w-3/4 bg-slate-200 rounded" />
+            <div className="h-3 w-1/2 bg-slate-100 rounded" />
+            <div className="h-3 w-2/5 bg-slate-100 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

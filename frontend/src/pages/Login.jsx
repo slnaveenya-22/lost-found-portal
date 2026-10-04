@@ -1,92 +1,90 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import Logo from "../components/Logo";
+import Button from "../components/Button";
+import FormField, { inputClass } from "../components/FormField";
 
-function Login() {
+export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
-
-    if (!formData.email || !formData.password) {
-      setError("Email and password are required");
-      return;
-    }
-
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", formData);
-
-      // Save the token so future requests can prove who the user is
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-
-      setSuccess("Login successful! Welcome, " + response.data.user.name);
+      const res = await axios.post("http://localhost:5000/api/auth/login", formData);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      navigate("/browse/lost");
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Something went wrong. Please try again.");
-      }
+      setError(err.response?.data?.error || "Something went wrong");
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm"
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center">Log In</h2>
-
-        {error && (
-          <div className="bg-red-100 text-red-700 p-2 rounded mb-4 text-sm">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-100 text-green-700 p-2 rounded mb-4 text-sm">
-            {success}
-          </div>
-        )}
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          />
+    <div className="min-h-screen flex">
+      {/* Brand panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-primary via-brand-primary to-brand-accent
+        items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/5" />
+        <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-white/5" />
+        <div className="relative z-10 max-w-md text-white">
+          <Logo variant="dark" />
+          <h2 className="mt-8 text-3xl font-bold tracking-tight">
+            Reuniting campus with what matters.
+          </h2>
+          <p className="mt-3 text-white/80 text-sm leading-relaxed">
+            Report lost items, browse found ones, and get notified the moment
+            a match appears — all in one place.
+          </p>
         </div>
+      </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          />
+      {/* Form panel */}
+      <div className="flex-1 flex items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-sm">
+          <div className="lg:hidden mb-8"><Logo variant="light" /></div>
+
+          <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+          <p className="mt-1 text-sm text-slate-500">Log in to your account</p>
+
+          {error && (
+            <div className="mt-4 rounded-lg bg-red-50 border border-red-200 text-red-700 p-3 text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6">
+            <FormField label="Email" required>
+              <input type="email" name="email" value={formData.email}
+                onChange={handleChange} className={inputClass}
+                placeholder="you@kct.ac.in" />
+            </FormField>
+
+            <FormField label="Password" required>
+              <input type="password" name="password" value={formData.password}
+                onChange={handleChange} className={inputClass}
+                placeholder="••••••••" />
+            </FormField>
+
+            <Button type="submit" variant="primary" size="lg" className="w-full mt-2">
+              Log In
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-slate-500">
+            Don't have an account?{" "}
+            <Link to="/register" className="font-medium text-brand-accent hover:underline">
+              Register
+            </Link>
+          </p>
         </div>
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          Log In
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
-
-export default Login;

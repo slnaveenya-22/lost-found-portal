@@ -1,71 +1,85 @@
 const express = require('express');
 const router = express.Router();
 const db = require('./db');
+const { optionalAuth } = require('./middleware/auth');
+
+// Whitelisted columns — never SELECT * on found_items (leaks private field)
+const PUBLIC_LOST_COLS = `
+  id, report_id, user_id, category, item_name, color, brand,
+  location, date_time, description, image_url, status, created_at
+`;
+const PUBLIC_FOUND_COLS = `
+  id, report_id, user_id, category, item_name, color, brand,
+  location, date_time, description, image_url, status, created_at
+`;
 
 // GET /api/items/search
-// Query params: query, category, status, dateFrom, dateTo, type (lost/found/all)
-router.get('/', async (req, res) => {
-  const { query, category, status, dateFrom, dateTo, type } = req.query;
+// Query params:
+//   type     = "lost" | "found"   (required)
+//   q        = keyword            (optional)
+//   category = exact match        (optional)
+//   days     = integer            (optional)
+//   sort     = recent|oldest|name (optional, default recent)
+router.get('/', optionalAuth, async (req, res) => {
+  const { type, q, category, days, sort = 'recent' } = req.query;
 
-  // Build WHERE conditions shared by both tables
-  let conditions = [];
-  let params = [];
-
-  if (query) {
-    conditions.push('(item_name LIKE ? OR description LIKE ? OR brand LIKE ? OR color LIKE ?)');
-    const likeValue = `%${query}%`;
-    params.push(likeValue, likeValue, likeValue, likeValue);
+  if (type !== 'lost' && type !== 'found') {
+    return res.status(400).json({ error: 'type must be "lost" or "found"' });
   }
+
+  const table = type === 'lost' ? 'lost_items' : 'found_items';
+  const cols = type === 'lost' ? PUBLIC_LOST_COLS : PUBLIC_FOUND_COLS;
+
+  const where = [];
+  const params = [];
+
+  if (q && q.trim()) {
+    const like = `%${q.trim()}%`;
+    where.push(`(
+      item_name LIKE ? OR
+      brand LIKE ? OR
+      color LIKE ? OR
+      location LIKE ? OR
+      description LIKE ?
+    )`);
+    params.push(like, like, like, like, like);
+  }
+
   if (category) {
-    conditions.push('category = ?');
+    where.push('category = ?');
     params.push(category);
   }
-  if (status) {
-    conditions.push('status = ?');
-    params.push(status);
-  }
-  if (dateFrom) {
-    conditions.push('date_time >= ?');
-    params.push(dateFrom);
-  }
-  if (dateTo) {
-    conditions.push('date_time <= ?');
-    params.push(dateTo);
+
+  if (days) {
+    const n = parseInt(days, 10);
+    if (!Number.isNaN(n) && n > 0) {
+      where.push('date_time >= DATE_SUB(NOW(), INTERVAL ? DAY)');
+      params.push(n);
+    }
   }
 
-  const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+  where.push("status != 'Removed'");
+
+  const orderBy = {
+    recent: 'created_at DESC',
+    oldest: 'created_at ASC',
+    name: 'item_name ASC',
+  }[sort] || 'created_at DESC';
+
+  const sql = `
+    SELECT ${cols}
+    FROM ${table}
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+    ORDER BY ${orderBy}
+    LIMIT 200
+  `;
 
   try {
-    let results = [];
-
-    // Search lost_items unless the user specifically asked for only 'found'
-    if (!type || type === 'lost' || type === 'all') {
-      const [lostRows] = await db.query(
-        `SELECT report_id, category, item_name, color, brand, location, date_time, description, image_url, status, 'Lost' AS type
-         FROM lost_items ${whereClause} ORDER BY date_time DESC LIMIT 100`,
-        params
-      );
-      results = results.concat(lostRows);
-    }
-
-    // Search found_items unless the user specifically asked for only 'lost'
-    // NOTE: private_verification_detail is intentionally NOT selected here — stays hidden from search results
-    if (!type || type === 'found' || type === 'all') {
-      const [foundRows] = await db.query(
-        `SELECT report_id, category, item_name, color, brand, location, date_time, description, image_url, status, 'Found' AS type
-         FROM found_items ${whereClause} ORDER BY date_time DESC LIMIT 100`,
-        params
-      );
-      results = results.concat(foundRows);
-    }
-
-    // Sort combined results by most recent first
-    results.sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
-
-    res.status(200).json({ count: results.length, results });
+    const [rows] = await db.query(sql, params);
+    res.json({ items: rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Something went wrong' });
+    console.error('search error:', err);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
