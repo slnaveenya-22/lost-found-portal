@@ -45,7 +45,7 @@ export default function Layout({ title = "KCT Lost & Found" }) {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block h-screen">
         <Sidebar
           collapsed={collapsed}
           role={role}
