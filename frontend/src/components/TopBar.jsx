@@ -1,11 +1,34 @@
 import { Menu, Search, Bell, Command } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+export default function TopBar({ title, onMenuClick, user }) {
+  const [unreadCount, setUnreadCount] = useState(0);
 
-export default function TopBar({
-  title,
-  onMenuClick,
-  notificationCount = 0,
-  user,
-}) {
+  useEffect(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let cancelled = false;
+
+    axios
+      .get("http://localhost:5000/api/notifications", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const items = res.data.items || [];
+        setUnreadCount(items.filter((n) => !n.is_read).length);
+      })
+      .catch(() => {
+        // Silent fail — badge just stays at 0
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   return (
     <header className="h-16 bg-white border-b border-brand-accent/15 flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-3 min-w-0">
@@ -44,9 +67,9 @@ export default function TopBar({
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5" strokeWidth={1.75} />
-          {notificationCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 bg-brand-accent text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
-              {notificationCount > 99 ? "99+" : notificationCount}
+              {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
         </button>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('./db');
 const { verifyToken } = require('./middleware/auth');
+const { createNotification } = require('./notificationHelper');
 
 // Valid statuses per the ENUM we just confirmed
 const VALID_STATUSES = ['Posted', 'Matched', 'Verified', 'Returned', 'Removed'];
@@ -92,6 +93,8 @@ router.patch('/:type/:reportId', verifyToken, async (req, res) => {
     // ── Log to status_history ─────────────────────────────────
     // If the table doesn't exist or the insert fails for any reason,
     // we still want the update to succeed. Log and continue.
+       // ── Log to status_history ─────────────────────────────────
+        // ── Log to status_history ─────────────────────────────────
     try {
       await db.query(
         `INSERT INTO status_history
@@ -101,7 +104,19 @@ router.patch('/:type/:reportId', verifyToken, async (req, res) => {
       );
     } catch (historyErr) {
       console.error('status_history insert failed:', historyErr.message);
-      // Don't fail the request — the status update already succeeded
+    }
+
+    // ── Fire notification if status became Returned ────────────
+    // Notify the reporter (not the actor, who already knows).
+    // Skip if the actor IS the reporter — no point telling someone
+    // what they just did themselves.
+    if (status === 'Returned' && Number(req.user.id) !== Number(item.user_id)) {
+      await createNotification(
+        item.user_id,
+        'ItemReturned',
+        `Your ${itemTypeLabel.toLowerCase()} item "${reportId}" was marked as returned.`,
+        `/items/${type}/${reportId}`
+      );
     }
 
     res.json({
@@ -113,6 +128,7 @@ router.patch('/:type/:reportId', verifyToken, async (req, res) => {
         status,
       },
     });
+    
   } catch (err) {
     console.error('patch item error:', err);
     res.status(500).json({ error: 'Failed to update item' });
