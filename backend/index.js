@@ -10,6 +10,7 @@ const itemReadRoutes = require('./itemReadRoutes');
 const itemWriteRoutes = require('./itemWriteRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const adminRoutes = require('./adminRoutes');   
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,7 @@ app.use('/api/items/search', searchRoutes);
 app.use('/api/items', itemWriteRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);     
 
 app.use('/uploads', express.static('uploads'));
 
