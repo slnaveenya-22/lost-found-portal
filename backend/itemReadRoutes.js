@@ -92,9 +92,12 @@ router.get('/detail/:type/:reportId', optionalAuth, async (req, res) => {
     const isOwner = req.user && Number(req.user.id) === Number(item.user_id);
     const isAdmin = req.user?.role === 'admin';
 
-    // Strip sensitive field unless owner or admin
+    // Strip sensitive fields unless owner or admin
     if (type === 'found' && !isOwner && !isAdmin) {
       delete item.private_verification_detail;
+      delete item.pv_kind;
+      delete item.pv_inside;
+      delete item.pv_extra_detail;
     }
 
     res.json({ item });

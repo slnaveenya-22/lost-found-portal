@@ -43,9 +43,13 @@ export default function ItemDetail() {
       setLoading(true);
       setError("");
       try {
+        const token = localStorage.getItem("token");
         const res = await axios.get(
           `http://localhost:5000/api/items/detail/${type}/${reportId}`,
-          { signal: controller.signal }
+          {
+            signal: controller.signal,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
         );
         if (cancelled) return;
         const data = res.data.item || res.data;
@@ -58,6 +62,7 @@ export default function ItemDetail() {
             {
               params: { type, report_id: reportId },
               signal: controller.signal,
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
             }
           );
           if (!cancelled) {
@@ -256,21 +261,43 @@ export default function ItemDetail() {
           )}
 
           {/* Owner-only private verification box */}
-          {isOwner && type === "found" && item.private_verification_detail && (
+          {isOwner && type === "found" && item.pv_kind && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
               <div className="flex items-start gap-3">
                 <span className="text-xl">🔒</span>
-                <div>
+                <div className="flex-1">
                   <h2 className="text-sm font-semibold text-amber-900">
-                    Private verification detail
+                    Your ownership quiz
                   </h2>
                   <p className="mt-1 text-xs text-amber-800">
-                    Only you (the reporter) can see this. Use it to confirm
-                    someone claiming this item is the real owner.
+                    Only you see this. Claimants must answer these correctly.
                   </p>
-                  <p className="mt-3 text-sm text-amber-900 whitespace-pre-line font-medium">
-                    {item.private_verification_detail}
-                  </p>
+                  <dl className="mt-4 space-y-3">
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-amber-700/70">
+                        Kind
+                      </dt>
+                      <dd className="text-sm text-amber-900 font-medium mt-0.5">
+                        {item.pv_kind}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-amber-700/70">
+                        Inside or attached
+                      </dt>
+                      <dd className="text-sm text-amber-900 font-medium mt-0.5">
+                        {item.pv_inside}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-amber-700/70">
+                        Distinctive
+                      </dt>
+                      <dd className="text-sm text-amber-900 font-medium mt-0.5">
+                        {item.pv_extra_detail}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
               </div>
             </div>

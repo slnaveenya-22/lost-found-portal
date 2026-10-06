@@ -26,6 +26,9 @@ const INITIAL_FORM = {
   date_time: "",
   description: "",
   private_verification_detail: "",
+  pv_kind: "",
+  pv_inside: "",
+  pv_extra_detail: "",
 };
 
 export default function ReportFoundItem() {
@@ -92,8 +95,24 @@ export default function ReportFoundItem() {
     if (!formData.item_name.trim()) next.item_name = "Item name is required";
     if (!formData.location.trim()) next.location = "Location is required";
     if (!formData.date_time) next.date_time = "Date & time is required";
-    // Private verification is optional but strongly encouraged — we
-    // don't block submit if it's empty, matching the backend.
+
+    // NEW — private verification quiz fields
+    if (!formData.pv_kind) next.pv_kind = "Please select the item kind";
+    if (!formData.pv_inside.trim()) {
+      next.pv_inside = "This is required for verification";
+    } else if (formData.pv_inside.trim().length < 10) {
+      next.pv_inside = "Please be more specific (at least 10 characters)";
+    } else if (formData.pv_inside.trim().length > 200) {
+      next.pv_inside = "Too long (max 200 characters)";
+    }
+    if (!formData.pv_extra_detail.trim()) {
+      next.pv_extra_detail = "This is required for verification";
+    } else if (formData.pv_extra_detail.trim().length < 10) {
+      next.pv_extra_detail = "Please be more specific (at least 10 characters)";
+    } else if (formData.pv_extra_detail.trim().length > 200) {
+      next.pv_extra_detail = "Too long (max 200 characters)";
+    }
+
     return next;
   };
 
@@ -128,6 +147,9 @@ export default function ReportFoundItem() {
       data.append("location", formData.location.trim());
       data.append("date_time", formData.date_time);
       data.append("description", formData.description.trim());
+      data.append("pv_kind", formData.pv_kind);
+      data.append("pv_inside", formData.pv_inside.trim());
+      data.append("pv_extra_detail", formData.pv_extra_detail.trim());
       data.append(
         "private_verification_detail",
         formData.private_verification_detail.trim()
@@ -144,7 +166,7 @@ export default function ReportFoundItem() {
     } catch (err) {
       setServerError(
         err.response?.data?.error ||
-          "Something went wrong. Please try again."
+        "Something went wrong. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -329,38 +351,83 @@ export default function ReportFoundItem() {
               </FormField>
             </Section>
 
-            {/* ══ Private verification section (amber) ═════ */}
+            {/* ══ Private verification quiz (amber) ═════ */}
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
-              <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-start gap-3 mb-5">
                 <span className="text-xl">🔒</span>
                 <div>
                   <h2 className="text-sm font-semibold text-amber-900">
-                    Private verification detail
+                    Ownership quiz
                   </h2>
-                  <p className="text-xs text-amber-800 mt-0.5">
-                    Never shown publicly. Used to confirm the real owner when
-                    someone claims this item.
+                  <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                    These answers become a 3-question quiz. Anyone claiming this item
+                    must pass it. Only you will see these answers.
                   </p>
                 </div>
               </div>
 
-              <FormField>
-                <textarea
-                  name="private_verification_detail"
-                  value={formData.private_verification_detail}
+              {/* Q1 — kind */}
+              <FormField label="What kind of item is it?" required error={errors.pv_kind}>
+                <select
+                  name="pv_kind"
+                  value={formData.pv_kind}
                   onChange={handleChange}
                   className={`${inputClass} bg-white`}
-                  rows={3}
-                  placeholder="e.g. The wallet has a photo of two dogs in the clear ID slot, and a small red sticker on the back."
+                >
+                  <option value="">Select a category…</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              {/* Q2 — inside / attached */}
+              <FormField
+                label="What was inside or attached to it?"
+                required
+                error={errors.pv_inside}
+              >
+                <textarea
+                  name="pv_inside"
+                  value={formData.pv_inside}
+                  onChange={handleChange}
+                  className={`${inputClass} bg-white`}
+                  rows={2}
+                  maxLength={200}
+                  placeholder="e.g. A photo of two dogs in the clear ID slot"
                 />
+                <p className="mt-1 text-[11px] text-amber-800/80">
+                  {formData.pv_inside.length}/200 · Be specific — only the real owner would know this
+                </p>
+              </FormField>
+
+              {/* Q3 — distinctive */}
+              <FormField
+                label="What else makes it distinctive?"
+                required
+                error={errors.pv_extra_detail}
+              >
+                <textarea
+                  name="pv_extra_detail"
+                  value={formData.pv_extra_detail}
+                  onChange={handleChange}
+                  className={`${inputClass} bg-white`}
+                  rows={2}
+                  maxLength={200}
+                  placeholder="e.g. A small red sticker on the back, slight scratch on the clasp"
+                />
+                <p className="mt-1 text-[11px] text-amber-800/80">
+                  {formData.pv_extra_detail.length}/200 · A mark, damage, or anything only the owner would recognize
+                </p>
               </FormField>
 
               <div className="mt-3 flex items-start gap-2 text-xs text-amber-800/90">
                 <span>💡</span>
                 <p className="leading-relaxed">
-                  <strong>Good secrets are specific and unguessable.</strong>{" "}
-                  Something only the real owner would recognize — an item
-                  inside, a scratch, a name written on a tag.
+                  <strong>Be specific.</strong> "It's black" is not enough. "Has a photo
+                  of my dog Rocky" is — only you would know that.
                 </p>
               </div>
             </div>
@@ -415,7 +482,7 @@ export default function ReportFoundItem() {
                   🔒 What stays private
                 </h3>
                 <ul className="text-xs text-amber-900/80 space-y-1.5 leading-relaxed">
-                  <li>· Your verification detail (only you see it)</li>
+                  <li>· Your quiz answers (only you see them)</li>
                   <li>· Your name and contact info (shown only during a claim)</li>
                   <li>· Uploaded photos are public — don't photograph the secret detail</li>
                 </ul>
