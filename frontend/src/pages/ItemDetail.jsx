@@ -6,6 +6,7 @@ import StatusPill from "../components/StatusPill";
 import TypeBadge from "../components/TypeBadge";
 import ItemCard from "../components/ItemCard";
 import EmptyState from "../components/EmptyState";
+import ClaimModal from "../components/ClaimModal";
 
 const STATUS_OPTIONS = ["Posted", "Matched", "Verified", "Returned", "Removed"];
 
@@ -20,6 +21,7 @@ export default function ItemDetail() {
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
 
   // ── Who is viewing? ─────────────────────────────────────────
   const user = useMemo(() => {
@@ -341,6 +343,7 @@ export default function ItemDetail() {
               statusUpdating={statusUpdating}
               onStatusChange={handleStatusChange}
               onRemoveClick={() => setConfirmRemoveOpen(true)}
+              onRaiseClaim={() => setClaimModalOpen(true)}
               navigate={navigate}
             />
 
@@ -356,12 +359,19 @@ export default function ItemDetail() {
         </aside>
       </div>
 
-      {confirmRemoveOpen && item && (
-        <ConfirmRemoveModal
-          item={item}
-          busy={removing}
-          onCancel={() => setConfirmRemoveOpen(false)}
-          onConfirm={handleRemove}
+      {claimModalOpen && item && (
+        <ClaimModal
+          foundItem={{
+            id: item.id,
+            report_id: item.report_id,
+            item_name: item.item_name,
+          }}
+          matchId={null}
+          onClose={() => setClaimModalOpen(false)}
+          onSuccess={() => {
+            // Keep modal open to show the success state.
+            // User dismisses it manually.
+          }}
         />
       )}
     </div>
@@ -393,6 +403,7 @@ function ActionPanel({
   isAdmin,
   statusUpdating,
   onStatusChange,
+  onRaiseClaim,
   onRemoveClick,        // NEW
   navigate,
 }) {
@@ -492,9 +503,19 @@ function ActionPanel({
           ? "Raise a claim and provide proof of ownership. The reporter will review it."
           : "Contact the reporter to let them know you found it."}
       </p>
-      <Button variant="accent" className="w-full mt-4">
-        {type === "found" ? "🔓 Raise a claim" : "📨 Contact reporter"}
-      </Button>
+      {type === "found" ? (
+        <Button
+          variant="accent"
+          className="w-full mt-4"
+          onClick={onRaiseClaim}
+        >
+          🔓 Raise a claim
+        </Button>
+      ) : (
+        <Button variant="accent" className="w-full mt-4">
+          📨 Contact reporter
+        </Button>
+      )}
       <Button variant="secondary" className="w-full mt-2">
         💬 Send message
       </Button>
