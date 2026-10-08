@@ -15,6 +15,7 @@ const dashboardRoutes = require('./dashboardRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const adminRoutes = require('./adminRoutes');
 const matchRoutes = require('./matchRoutes');
+const claimRoutes = require('./claimRoutes'); 
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api', claimRoutes);        
 
 app.use('/uploads', express.static('uploads'));
 
@@ -71,6 +73,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('Created uploads directory:', uploadsDir);
 }
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
