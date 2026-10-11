@@ -13,6 +13,8 @@ import {
   UserPlus,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  ClipboardCheck,
 } from "lucide-react";
 import Logo from "./Logo";
 
@@ -28,8 +30,7 @@ function NavItem({ to, icon: Icon, label, collapsed }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `${navBase} ${isActive ? navActive : navIdle} ${
-          collapsed ? "justify-center p-3" : "px-4 py-2.5"
+        `${navBase} ${isActive ? navActive : navIdle} ${collapsed ? "justify-center p-3" : "px-4 py-2.5"
         }`
       }
       title={collapsed ? label : undefined}
@@ -66,9 +67,8 @@ export default function Sidebar({
 
       {/* Nav */}
       <nav
-        className={`flex-1 overflow-y-auto py-3 space-y-1 ${
-          collapsed ? "px-2" : "px-3"
-        }`}
+        className={`flex-1 overflow-y-auto py-3 space-y-1 ${collapsed ? "px-2" : "px-3"
+          }`}
       >
         <NavItem to="/" icon={Home} label="Home" collapsed={collapsed} />
         <NavItem
@@ -92,6 +92,24 @@ export default function Sidebar({
               label="Dashboard"
               collapsed={collapsed}
             />
+
+            <div className="my-2 border-t border-brand-accent/15" />
+
+            <NavItem
+              to="/my-reports"
+              icon={FileText}
+              label="My Reports"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/my-claims"
+              icon={ClipboardCheck}
+              label="My Claims"
+              collapsed={collapsed}
+            />
+
+            <div className="my-2 border-t border-brand-accent/15" />
+
             <NavItem
               to="/report-lost"
               icon={PlusCircle}
@@ -104,6 +122,9 @@ export default function Sidebar({
               label="Report Found"
               collapsed={collapsed}
             />
+
+            <div className="my-2 border-t border-brand-accent/15" />
+
             <NavItem
               to="/notifications"
               icon={Bell}
@@ -112,7 +133,6 @@ export default function Sidebar({
             />
           </>
         )}
-
         {isAdmin && (
           <>
             <div className="my-3 border-t border-brand-accent/15" />
@@ -170,14 +190,12 @@ export default function Sidebar({
       {/* Footer — user chip */}
       {!isGuest && user && (
         <div
-          className={`border-t border-brand-accent/15 ${
-            collapsed ? "p-2" : "p-3"
-          }`}
+          className={`border-t border-brand-accent/15 ${collapsed ? "p-2" : "p-3"
+            }`}
         >
           <div
-            className={`flex items-center ${
-              collapsed ? "justify-center" : "gap-3"
-            }`}
+            className={`flex items-center ${collapsed ? "justify-center" : "gap-3"
+              }`}
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-accent to-brand-primary text-white flex items-center justify-center font-semibold shrink-0 text-sm shadow-sm">
               {user.name?.[0]?.toUpperCase() || "U"}

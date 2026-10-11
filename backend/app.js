@@ -15,7 +15,7 @@ const dashboardRoutes = require('./dashboardRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const adminRoutes = require('./adminRoutes');
 const matchRoutes = require('./matchRoutes');
-const claimRoutes = require('./claimRoutes'); 
+const claimRoutes = require('./claimRoutes');
 
 const app = express();
 app.use(cors());
@@ -31,7 +31,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/matches', matchRoutes);
-app.use('/api', claimRoutes);        
+app.use('/api', claimRoutes);           // for /items/found/:reportId/quiz
+app.use('/api/claims', claimRoutes);    // for /mine and POST /
 
 app.use('/uploads', express.static('uploads'));
 
