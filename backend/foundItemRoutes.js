@@ -43,13 +43,21 @@ router.post('/', upload.single('image'), async (req, res) => {
     return res.status(400).json({ error: 'Required fields are missing' });
   }
 
-  // NEW — quiz fields are mandatory
+  // Quiz fields are mandatory
   if (!pv_kind || !pv_inside || !pv_extra_detail) {
     return res.status(400).json({
       error: 'Private verification fields are required (kind, inside, extra detail)',
     });
   }
 
+  // Check for useless answers BEFORE length so the error message is clear.
+  // Otherwise "nothing" (7 chars) would surface the length error instead of
+  // telling the user their answer is meaningless.
+  if (isUselessAnswer(pv_inside) || isUselessAnswer(pv_extra_detail)) {
+    return res.status(400).json({
+      error: 'Please provide specific answers — not "nothing" or "idk".',
+    });
+  }
   if (pv_inside.trim().length < 10 || pv_inside.trim().length > 200) {
     return res
       .status(400)
@@ -59,11 +67,6 @@ router.post('/', upload.single('image'), async (req, res) => {
     return res
       .status(400)
       .json({ error: 'The "distinctive detail" answer must be 10–200 characters' });
-  }
-  if (isUselessAnswer(pv_inside) || isUselessAnswer(pv_extra_detail)) {
-    return res.status(400).json({
-      error: 'Please provide specific answers — not "nothing" or "idk".',
-    });
   }
 
   try {
