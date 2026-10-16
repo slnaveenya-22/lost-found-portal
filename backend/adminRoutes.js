@@ -146,11 +146,13 @@ router.get('/claims', async (req, res) => {
   }
 
   try {
-    const [rows] = await db.query(
+    // ── 1. Fetch claims (as before) ─────────────────────────
+    const [claims] = await db.query(
       `
       SELECT
         c.id, c.match_id, c.found_item_id, c.claimant_id,
         c.proof_text, c.status, c.rejection_reason,
+        c.quiz_passed, c.quiz_attempts,
         c.reviewed_by, c.created_at,
         fi.report_id AS item_report_id,
         fi.item_name  AS item_name,
@@ -170,7 +172,56 @@ router.get('/claims', async (req, res) => {
       params
     );
 
-    res.json({ items: rows });
+    if (claims.length === 0) {
+      return res.json({ items: [] });
+    }
+
+    // ── 2. Fetch questions + answers for all claims in one shot ──
+    const claimIds = claims.map((c) => c.id);
+    const placeholders = claimIds.map(() => '?').join(',');
+
+    const [answers] = await db.query(
+      `
+      SELECT
+        ca.claim_id,
+        ca.selected_option,
+        ca.is_correct,
+        q.id           AS question_id,
+        q.question_text,
+        q.correct_option,
+        q.wrong_option_1,
+        q.wrong_option_2,
+        q.wrong_option_3,
+        q.display_order
+      FROM claim_answers ca
+      JOIN found_item_questions q ON q.id = ca.question_id
+      WHERE ca.claim_id IN (${placeholders})
+      ORDER BY ca.claim_id, q.display_order ASC
+      `,
+      claimIds
+    );
+
+    // ── 3. Group answers by claim_id ────────────────────────
+    const answersByClaim = {};
+    for (const a of answers) {
+      if (!answersByClaim[a.claim_id]) answersByClaim[a.claim_id] = [];
+      answersByClaim[a.claim_id].push({
+        question_id: a.question_id,
+        question_text: a.question_text,
+        correct_option: a.correct_option,
+        wrong_options: [a.wrong_option_1, a.wrong_option_2, a.wrong_option_3],
+        claimant_selected: a.selected_option,
+        is_correct: Boolean(a.is_correct),
+      });
+    }
+
+    // ── 4. Attach questions array to each claim ─────────────
+    const enriched = claims.map((c) => ({
+      ...c,
+      questions: answersByClaim[c.id] || [],
+    }));
+
+    res.json({ items: enriched });
   } catch (err) {
     console.error('admin claims error:', err);
     res.status(500).json({ error: 'Failed to load claims' });

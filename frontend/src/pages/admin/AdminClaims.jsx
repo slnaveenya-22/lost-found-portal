@@ -237,6 +237,11 @@ function ClaimRow({ claim, tab, busy, onView, onApprove, onReject }) {
             </div>
           )}
 
+          <QuizSection
+            questions={claim.questions || []}
+            quizPassed={Boolean(claim.quiz_passed)}
+          />
+
           <p className="mt-2 text-xs text-slate-400">
             Submitted {formatDate(created_at)}
           </p>
@@ -336,4 +341,90 @@ function formatDate(value) {
   } catch {
     return value;
   }
+}
+
+function QuizSection({ questions, quizPassed }) {
+  const [open, setOpen] = useState(false);
+
+  // Legacy item — no quiz
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <p className="text-xs text-amber-900 leading-relaxed">
+          <strong>⚠️ No quiz on this item.</strong> Manual verification
+          required. Compare the finder's private detail against the
+          claimant's account before approving.
+        </p>
+      </div>
+    );
+  }
+
+  const correctCount = questions.filter((q) => q.is_correct).length;
+  const total = questions.length;
+
+  return (
+    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-800">
+            Ownership quiz
+          </span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+              quizPassed
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {correctCount}/{total} correct
+          </span>
+        </div>
+        <span className="text-xs text-slate-500">
+          {open ? "Hide answers" : "Show answers"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-200 p-3 space-y-3 bg-white">
+          {questions.map((q, i) => (
+            <div key={q.question_id} className="text-xs">
+              <p className="font-medium text-slate-800 mb-1.5">
+                {i + 1}. {q.question_text}
+              </p>
+
+              <div
+                className={`flex items-start gap-2 rounded px-2 py-1.5 ${
+                  q.is_correct
+                    ? "bg-emerald-50 border border-emerald-200"
+                    : "bg-red-50 border border-red-200"
+                }`}
+              >
+                <span className="mt-0.5">
+                  {q.is_correct ? "✅" : "❌"}
+                </span>
+                <div className="flex-1">
+                  <p className="text-slate-700">
+                    <span className="text-slate-500">Claimant chose: </span>
+                    <span className="font-medium">{q.claimant_selected}</span>
+                  </p>
+                  {!q.is_correct && (
+                    <p className="text-slate-600 mt-0.5">
+                      <span className="text-slate-500">Correct answer: </span>
+                      <span className="font-medium text-emerald-700">
+                        {q.correct_option}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
