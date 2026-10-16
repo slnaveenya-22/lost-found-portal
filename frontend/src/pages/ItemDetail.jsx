@@ -7,6 +7,7 @@ import TypeBadge from "../components/TypeBadge";
 import ItemCard from "../components/ItemCard";
 import EmptyState from "../components/EmptyState";
 import ClaimModal from "../components/ClaimModal";
+import StatusTimeline from "../components/StatusTimeline";
 
 const STATUS_OPTIONS = ["Posted", "Matched", "Verified", "Returned", "Removed"];
 
@@ -22,6 +23,8 @@ export default function ItemDetail() {
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // ── Who is viewing? ─────────────────────────────────────────
   const user = useMemo(() => {
@@ -56,6 +59,18 @@ export default function ItemDetail() {
         if (cancelled) return;
         const data = res.data.item || res.data;
         setItem(data);
+        // Fetch status history in parallel with item load
+try {
+  const hRes = await axios.get(
+    `http://localhost:5000/api/items/${type}/${reportId}/history`,
+    { signal: controller.signal }
+  );
+  if (!cancelled) setHistory(hRes.data.history || []);
+} catch {
+  // silent — timeline just shows empty
+} finally {
+  if (!cancelled) setHistoryLoading(false);
+}
 
         // Similar items — Story 7 placeholder. Silently ignore failures.
         try {
@@ -261,7 +276,10 @@ export default function ItemDetail() {
               </p>
             </div>
           )}
+          {/* Timeline */}
+          <StatusTimeline history={history} loading={historyLoading} />
 
+   
           {/* Owner-only private verification box */}
           {isOwner && type === "found" && item.pv_kind && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
