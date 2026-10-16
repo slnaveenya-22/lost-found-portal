@@ -1,10 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+﻿import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 // Auth pages (no sidebar)
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
-// App shell
+// App shell and user pages
 import Layout from "./components/Layout";
 import SearchItems from "./pages/SearchItems";
 import ItemDetail from "./pages/ItemDetail";
@@ -13,8 +13,9 @@ import ReportFoundItem from "./pages/ReportFoundItem";
 import Dashboard from "./pages/Dashboard";
 import Notifications from "./pages/Notifications";
 import MyReports from "./pages/MyReports";
+import MyClaims from "./pages/MyClaims";
 
-// Admin
+// Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminClaims from "./pages/admin/AdminClaims";
 import AdminItems from "./pages/admin/AdminItems";
@@ -30,7 +31,11 @@ export default function App() {
 
         {/* Everything else wrapped in Layout */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/browse/lost" replace />} />
+          {/* Home redirect */}
+          <Route
+            path="/"
+            element={<Navigate to="/browse/lost" replace />}
+          />
 
           {/* Browse */}
           <Route
@@ -43,12 +48,16 @@ export default function App() {
           />
 
           {/* Item detail */}
-          <Route path="/items/:type/:reportId" element={<ItemDetail />} />
+          <Route
+            path="/items/:type/:reportId"
+            element={<ItemDetail />}
+          />
 
           {/* Reports */}
           <Route path="/report-lost" element={<ReportLostItem />} />
           <Route path="/report-found" element={<ReportFoundItem />} />
           <Route path="/my-reports" element={<MyReports />} />
+          <Route path="/my-claims" element={<MyClaims />} />
 
           {/* User dashboard + notifications */}
           <Route path="/dashboard" element={<Dashboard />} />
@@ -65,9 +74,11 @@ export default function App() {
             path="*"
             element={
               <div className="max-w-xl mx-auto text-center py-20">
-                <h1 className="text-4xl font-bold text-slate-900">404</h1>
+                <h1 className="text-4xl font-bold text-slate-900">
+                  404
+                </h1>
                 <p className="mt-2 text-slate-500">
-                  This page doesn't exist.
+                  This page doesn&apos;t exist.
                 </p>
               </div>
             }
