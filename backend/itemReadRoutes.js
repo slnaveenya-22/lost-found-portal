@@ -106,5 +106,68 @@ router.get('/detail/:type/:reportId', optionalAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to load item' });
   }
 });
+/**
+ * GET /api/items/:type/:reportId/history
+ * Returns the status timeline for an item, newest first.
+ * Public — status changes aren't private.
+ */
+router.get('/:type/:reportId/history', optionalAuth, async (req, res) => {
+  const { type, reportId } = req.params;
 
+  if (type !== 'lost' && type !== 'found') {
+    return res.status(400).json({ error: 'type must be "lost" or "found"' });
+  }
+
+  const table = type === 'lost' ? 'lost_items' : 'found_items';
+  const itemTypeLabel = type === 'lost' ? 'Lost' : 'Found';
+
+  try {
+    // 1. Confirm the item exists and get its created_at
+    const [items] = await db.query(
+      `SELECT id, user_id, status, created_at FROM ${table}
+       WHERE report_id = ? LIMIT 1`,
+      [reportId]
+    );
+
+    if (items.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    const item = items[0];
+
+    // 2. Fetch the real history rows
+    const [history] = await db.query(
+      `SELECT id, old_status, new_status, actor_role, changed_at
+       FROM status_history
+       WHERE item_id = ? AND item_type = ?
+       ORDER BY changed_at DESC, id DESC`,
+      [item.id, itemTypeLabel]
+    );
+
+    // 3. Add a synthetic "Reported" entry at the end if no real
+    //    creation row exists, so the timeline has a starting point.
+    const hasCreationRow = history.some(
+      (h) => h.old_status === null && h.new_status === 'Posted'
+    );
+
+    const timeline = hasCreationRow
+      ? history
+      : [
+          ...history,
+          {
+            id: null,
+            old_status: null,
+            new_status: 'Posted',
+            actor_role: 'student',
+            changed_at: item.created_at,
+            synthetic: true,
+          },
+        ];
+
+    res.json({ history: timeline });
+  } catch (err) {
+    console.error('status history error:', err);
+    res.status(500).json({ error: 'Failed to load status history' });
+  }
+});
 module.exports = router;
