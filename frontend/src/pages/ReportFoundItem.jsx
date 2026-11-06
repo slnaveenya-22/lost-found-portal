@@ -4,6 +4,7 @@ import axios from "axios";
 import Button from "../components/Button";
 import FormField, { inputClass } from "../components/FormField";
 import ItemCard from "../components/ItemCard";
+import { useToast } from "../context/ToastContext";
 
 const CATEGORIES = [
   "Electronics",
@@ -33,6 +34,7 @@ const INITIAL_FORM = {
 
 export default function ReportFoundItem() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [image, setImage] = useState(null);
@@ -163,6 +165,7 @@ export default function ReportFoundItem() {
       );
 
       setSuccessReportId(res.data.reportId);
+      showToast("Item reported successfully!", "success");
     } catch (err) {
       setServerError(
         err.response?.data?.error ||

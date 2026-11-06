@@ -4,6 +4,7 @@ import axios from "axios";
 import Button from "../../components/Button";
 import EmptyState from "../../components/EmptyState";
 import StatusPill from "../../components/StatusPill";
+import { useToast } from "../../context/ToastContext";
 
 const TABS = [
   { label: "Pending", value: "Pending" },
@@ -19,6 +20,7 @@ export default function AdminClaims() {
   const [error, setError] = useState("");
   const [rejectTarget, setRejectTarget] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const { showToast } = useToast();
 
   const user = useMemo(() => {
     try {
@@ -95,6 +97,10 @@ export default function AdminClaims() {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
+      );
+      showToast(
+        `Claim ${action === "approve" ? "approved" : "rejected"} successfully!`,
+        "success"
       );
     } catch (err) {
       setClaims(snapshot);

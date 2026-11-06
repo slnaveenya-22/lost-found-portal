@@ -4,6 +4,7 @@ import axios from "axios";
 import Button from "../components/Button";
 import FormField, { inputClass } from "../components/FormField";
 import ItemCard from "../components/ItemCard";
+import { useToast } from "../context/ToastContext";
 
 // Same list as SearchItems — swap for a GET /api/categories later
 const CATEGORIES = [
@@ -30,6 +31,7 @@ const INITIAL_FORM = {
 
 export default function ReportLostItem() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [image, setImage] = useState(null);
@@ -139,6 +141,7 @@ export default function ReportLostItem() {
       );
 
       setSuccessReportId(res.data.reportId);
+      showToast("Item reported successfully!", "success");
     } catch (err) {
       setServerError(
         err.response?.data?.error ||
@@ -148,7 +151,6 @@ export default function ReportLostItem() {
       setSubmitting(false);
     }
   };
-
   // ── Success screen ──────────────────────────────────────────
   if (successReportId) {
     return (

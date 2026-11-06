@@ -103,9 +103,13 @@ router.get('/mine', verifyToken, async (req, res) => {
         fi.item_name   AS found_item_name,
         fi.image_url   AS found_item_image_url,
         fi.status      AS found_item_status,
+        fi.user_id     AS finder_id,
+        finder.name    AS finder_name,
+        finder.email   AS finder_email,
         reviewer.name  AS reviewer_name
       FROM claims c
       JOIN found_items fi ON fi.id = c.found_item_id
+      LEFT JOIN users finder ON finder.id = fi.user_id
       LEFT JOIN users reviewer ON reviewer.id = c.reviewed_by
       WHERE c.claimant_id = ?
       ORDER BY c.created_at DESC

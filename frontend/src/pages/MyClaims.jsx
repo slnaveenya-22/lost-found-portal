@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Button from "../components/Button";
 import EmptyState from "../components/EmptyState";
+import ClaimDetailsModal from "../components/ClaimDetailsModal";
 
 const TABS = [
   { label: "All", value: "all" },
@@ -23,6 +24,7 @@ export default function MyClaims() {
   const [tab, setTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedClaim, setSelectedClaim] = useState(null);
 
   const user = useMemo(() => {
     try {
@@ -174,14 +176,25 @@ export default function MyClaims() {
               <ClaimRow
                 key={c.id}
                 claim={c}
-                onClick={() =>
-                  navigate(`/items/found/${c.found_report_id}`)
-                }
+                onClick={() => {
+                  if (c.status === "Approved") {
+                    setSelectedClaim(c);
+                  } else {
+                    navigate(`/items/found/${c.found_report_id}`);
+                  }
+                }}
               />
             ))}
           </ul>
         )}
       </div>
+      {selectedClaim && (
+        <ClaimDetailsModal
+          claim={selectedClaim}
+          isClaimant={true}
+          onClose={() => setSelectedClaim(null)}
+        />
+      )}
     </div>
   );
 }

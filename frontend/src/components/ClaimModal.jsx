@@ -7,6 +7,7 @@ export default function ClaimModal({
   matchId = null,
   onClose,
   onSuccess,
+  onFailure,
 }) {
   const [questions, setQuestions] = useState([]);
   const [legacy, setLegacy] = useState(false);
@@ -91,6 +92,7 @@ export default function ClaimModal({
           message:
             "One or more of your answers were incorrect. Your claim was not submitted. Try again if you're the rightful owner.",
         });
+        onFailure?.();
       }
     } catch (err) {
       setResult({

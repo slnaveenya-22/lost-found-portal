@@ -46,6 +46,9 @@ describe('GET /api/claims/mine', () => {
                 found_item_name: 'Found wallet',
                 found_item_image_url: '/uploads/wallet.jpg',
                 found_item_status: 'Posted',
+                finder_id: 14,
+                finder_name: 'Item Finder',
+                finder_email: 'finder@example.com',
                 reviewer_name: null,
             }, ],
         ]);
@@ -59,11 +62,15 @@ describe('GET /api/claims/mine', () => {
         expect(res.body.items).toHaveLength(1);
         expect(res.body.items[0].status).toBe('Pending');
         expect(res.body.items[0].found_report_id).toBe('FND-111111');
+        expect(res.body.items[0].finder_id).toBe(14);
+        expect(res.body.items[0].finder_name).toBe('Item Finder');
+        expect(res.body.items[0].finder_email).toBe('finder@example.com');
 
         // Verify the SQL was scoped to the requesting user
         expect(db.query).toHaveBeenCalledTimes(1);
-        const [, params] = db.query.mock.calls[0];
+        const [query, params] = db.query.mock.calls[0];
         expect(params).toEqual([7]);
+        expect(query).toContain('LEFT JOIN users finder ON finder.id = fi.user_id');
     });
 
     it('returns an empty array when the user has no claims', async() => {

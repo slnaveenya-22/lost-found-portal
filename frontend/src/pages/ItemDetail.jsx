@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -8,6 +9,7 @@ import ItemCard from "../components/ItemCard";
 import EmptyState from "../components/EmptyState";
 import ClaimModal from "../components/ClaimModal";
 import StatusTimeline from "../components/StatusTimeline";
+import { useToast } from "../context/ToastContext";
 
 const STATUS_OPTIONS = ["Posted", "Matched", "Verified", "Returned", "Removed"];
 
@@ -25,6 +27,7 @@ export default function ItemDetail() {
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const { showToast } = useToast();
 
   // ── Who is viewing? ─────────────────────────────────────────
   const user = useMemo(() => {
@@ -142,6 +145,7 @@ try {
       );
       setItem({ ...item, status: "Removed" });
       setConfirmRemoveOpen(false);
+      showToast("Item marked as Removed.", "success");
     } catch (err) {
       alert(
         err.response?.data?.error || "Failed to remove. Please try again."
@@ -389,7 +393,19 @@ try {
           onSuccess={() => {
             // Keep modal open to show the success state.
             // User dismisses it manually.
+            showToast("Claim submitted! Awaiting admin review.", "success");
           }}
+          onFailure={() =>
+            showToast("One or more answers were incorrect.", "error")
+          }
+        />
+      )}
+      {confirmRemoveOpen && item && (
+        <ConfirmRemoveModal
+          item={item}
+          busy={removing}
+          onCancel={() => setConfirmRemoveOpen(false)}
+          onConfirm={handleRemove}
         />
       )}
     </div>
