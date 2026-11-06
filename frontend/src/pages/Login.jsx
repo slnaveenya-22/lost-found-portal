@@ -4,10 +4,12 @@ import axios from "axios";
 import Logo from "../components/Logo";
 import Button from "../components/Button";
 import FormField, { inputClass } from "../components/FormField";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) =>
@@ -20,7 +22,7 @@ export default function Login() {
       const res = await axios.post("http://localhost:5000/api/auth/login", formData);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/browse/lost");
+      navigate("/browse");
     } catch (err) {
       setError(err.response?.data?.error || "Something went wrong");
     }
@@ -67,15 +69,41 @@ export default function Login() {
             </FormField>
 
             <FormField label="Password" required>
-              <input type="password" name="password" value={formData.password}
-                onChange={handleChange} className={inputClass}
-                placeholder="••••••••" />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`${inputClass} pr-10`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </FormField>
 
             <Button type="submit" variant="primary" size="lg" className="w-full mt-2">
               Log In
             </Button>
           </form>
+
+          <div className="mt-6 border-t border-slate-200 pt-6">
+            <p className="text-xs text-center text-slate-500 mb-3">For Demo / Grading Purposes</p>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => setFormData({ email: "student@kct.ac.in", password: "password123" })}>
+                👨‍🎓 Demo Student
+              </Button>
+              <Button type="button" variant="secondary" size="sm" className="flex-1 text-xs" onClick={() => setFormData({ email: "admin@kct.ac.in", password: "password123" })}>
+                🛡️ Demo Admin
+              </Button>
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-slate-500">
             Don't have an account?{" "}

@@ -66,123 +66,52 @@ export default function Sidebar({
       </div>
 
       {/* Nav */}
-      <nav
-        className={`flex-1 overflow-y-auto py-3 space-y-1 ${collapsed ? "px-2" : "px-3"
-          }`}
-      >
-        <NavItem to="/" icon={Home} label="Home" collapsed={collapsed} />
-        <NavItem
-          to="/browse/lost"
-          icon={Search}
-          label="Lost Items"
-          collapsed={collapsed}
-        />
-        <NavItem
-          to="/browse/found"
-          icon={PackageSearch}
-          label="Found Items"
-          collapsed={collapsed}
-        />
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
 
-        {!isGuest && (
+        {/* Main Navigation */}
+        <NavItem to="/browse" icon={Home} label="Home" collapsed={collapsed} />
+        <NavItem to="/browse" icon={Search} label="Browse Items" collapsed={collapsed} />
+
+        {/* Only show Dashboard/Reports/Claims to Students, NOT Admins */}
+        {!isAdmin && !isGuest && (
           <>
-            <NavItem
-              to="/dashboard"
-              icon={LayoutDashboard}
-              label="Dashboard"
-              collapsed={collapsed}
-            />
+            <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
 
-            <div className="my-2 border-t border-brand-accent/15" />
+            <div className="my-2 border-t border-slate-200" />
 
-            <NavItem
-              to="/my-reports"
-              icon={FileText}
-              label="My Reports"
-              collapsed={collapsed}
-            />
-            <NavItem
-              to="/my-claims"
-              icon={ClipboardCheck}
-              label="My Claims"
-              collapsed={collapsed}
-            />
+            <NavItem to="/my-reports" icon={FileText} label="My Reports" collapsed={collapsed} />
+            <NavItem to="/my-claims" icon={ClipboardCheck} label="My Claims" collapsed={collapsed} />
 
-            <div className="my-2 border-t border-brand-accent/15" />
+            <div className="my-2 border-t border-slate-200" />
 
-            <NavItem
-              to="/report-lost"
-              icon={PlusCircle}
-              label="Report Lost"
-              collapsed={collapsed}
-            />
-            <NavItem
-              to="/report-found"
-              icon={PlusCircle}
-              label="Report Found"
-              collapsed={collapsed}
-            />
-
-            <div className="my-2 border-t border-brand-accent/15" />
-
-            <NavItem
-              to="/notifications"
-              icon={Bell}
-              label="Notifications"
-              collapsed={collapsed}
-            />
+            <NavItem to="/report" icon={PlusCircle} label="Report an Item" collapsed={collapsed} />
+            <NavItem to="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />
           </>
         )}
+
+        {/* Admin Section */}
         {isAdmin && (
           <>
-            <div className="my-3 border-t border-brand-accent/15" />
+            <div className="my-2 border-t border-slate-200" />
             {!collapsed && (
               <p className="px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">
-                Admin
+                Admin Panel
               </p>
             )}
-            <NavItem
-              to="/admin"
-              icon={Settings}
-              label="Dashboard"
-              collapsed={collapsed}
-            />
-            <NavItem
-              to="/admin/claims"
-              icon={CheckCircle2}
-              label="Claims"
-              collapsed={collapsed}
-            />
-            <NavItem
-              to="/admin/items"
-              icon={PackageSearch}
-              label="Items"
-              collapsed={collapsed}
-            />
-            <NavItem
-              to="/admin/users"
-              icon={Users}
-              label="Users"
-              collapsed={collapsed}
-            />
+            <NavItem to="/admin" icon={Settings} label="Admin Dashboard" collapsed={collapsed} />
+            <NavItem to="/admin/claims" icon={CheckCircle2} label="Claims" collapsed={collapsed} />
+            <NavItem to="/admin/items" icon={PackageSearch} label="Items" collapsed={collapsed} />
+            <NavItem to="/admin/users" icon={Users} label="Users" collapsed={collapsed} />
           </>
         )}
 
+        {/* Guest Section */}
         {isGuest && (
           <>
-            <div className="my-3 border-t border-brand-accent/15" />
-            <NavItem
-              to="/login"
-              icon={LogIn}
-              label="Log In"
-              collapsed={collapsed}
-            />
-            <NavItem
-              to="/register"
-              icon={UserPlus}
-              label="Register"
-              collapsed={collapsed}
-            />
+            <div className="my-2 border-t border-slate-200" />
+            <NavItem to="/login" icon={LogIn} label="Log In" collapsed={collapsed} />
+            <NavItem to="/register" icon={UserPlus} label="Register" collapsed={collapsed} />
           </>
         )}
       </nav>

@@ -28,8 +28,8 @@ router.get('/stats', async (req, res) => {
     const s = rows[0] || {};
     res.json({
       stats: {
-        total_users:    Number(s.total_users)    || 0,
-        total_items:    Number(s.total_items)    || 0,
+        total_users: Number(s.total_users) || 0,
+        total_items: Number(s.total_items) || 0,
         pending_claims: Number(s.pending_claims) || 0,
         returned_items: Number(s.returned_items) || 0,
       },
@@ -370,15 +370,31 @@ router.patch('/claims/:id', async (req, res) => {
 
     // 4. If the claim was linked to a match, update that match
     //    and its lost item too.
-    if (claim.match_id) {
+    // 4. Find the match (either directly from the claim, or by searching)
+    let matchIdToUpdate = claim.match_id;
+
+    // Safety Net: If no match_id, try to find one based on the found item
+    if (!matchIdToUpdate) {
+      const [possibleMatch] = await db.query(
+        `SELECT id FROM matches WHERE found_item_id = ? AND status = 'Suggested' LIMIT 1`,
+        [claim.found_item_id]
+      );
+      if (possibleMatch.length > 0) {
+        matchIdToUpdate = possibleMatch[0].id;
+      }
+    }
+
+    if (matchIdToUpdate) {
+      // Update the match status
       await db.query(
         `UPDATE matches SET status = 'Claimed' WHERE id = ?`,
-        [claim.match_id]
+        [matchIdToUpdate]
       );
 
+      // Find the lost item linked to this match
       const [matchRows] = await db.query(
         `SELECT lost_item_id FROM matches WHERE id = ?`,
-        [claim.match_id]
+        [matchIdToUpdate]
       );
 
       const lostItemId = matchRows[0]?.lost_item_id;

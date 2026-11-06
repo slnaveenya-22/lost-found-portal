@@ -60,7 +60,9 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 
   // Default: don't show Removed items in public browse
+  // Default: don't show Removed OR Returned items in public browse
   where.push("status != 'Removed'");
+  where.push("status != 'Returned'");
 
   const orderBy = {
     recent: 'created_at DESC',
